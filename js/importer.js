@@ -82,26 +82,33 @@ const Importer = {
     const baseUrl = apiBase || 'https://api.openai.com/v1';
     const modelName = model || 'gpt-4o-mini';
 
-    // 截取前4000字避免超长
-    const truncated = text.substring(0, 4000);
+    // 分段处理长文本，每段3000字
+    const segments = [];
+    const segSize = 3000;
+    for (let i = 0; i < text.length; i += segSize) {
+      segments.push(text.substring(i, i + segSize));
+    }
+    // 默认处理第一段，如果有多段会在后续合并
+    const textToProcess = segments.length > 1 ? segments.slice(0, 3).join('\n') : segments[0];
 
-    const prompt = `你是一个考试复习助手。请分析以下文本，提取出所有可以作为复习卡片的问题-答案对。
+    const prompt = `你是一个考试复习助手。请分析以下考试复习资料，严格按照原文内容提取复习卡片。
 
-要求：
-1. 识别名词解释：名词 + 解释
-2. 识别简答题/论述题：问题 + 答案
-3. 识别选择题：题目 + 选项 + 正确答案
-4. 识别填空题：含空格的句子 + 答案
+重要规则：
+1. 每个人物/主题/概念应该是一张卡片，front是名称，back是关于它的所有信息（完整保留原文内容）
+2. 如果原文有问答形式（以问号结尾的句子），则front是问题，back是答案
+3. 不要拆分同一个主题的多个字段（如思想、代表作、地位等应合并在一张卡片的back中）
+4. 不要缩写或概括原文，保持原文内容的完整性
+5. 保留所有细节信息
 
 请以 JSON 数组格式返回，每项包含：
-- front: 问题/名词
-- back: 答案/解释
-- type: 题型（名词解释/简答题/论述题/选择题/填空题）
+- front: 人物名/主题名/问题
+- back: 完整的描述/答案（保留原文所有内容，不要截断）
+- type: 题型（名词解释/简答题/论述题）
 
 只返回 JSON 数组，不要其他内容。
 
-文本内容：
-${truncated}`;
+考试资料内容：
+${textToProcess}`;
 
     const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',

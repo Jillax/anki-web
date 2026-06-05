@@ -347,7 +347,7 @@ const App = {
       this.importText = await Importer.extractText(file);
       document.getElementById('import-step2').style.display = 'none';
       document.getElementById('import-step3').style.display = 'block';
-      const preview = this.importText.substring(0, 500) + (this.importText.length > 500 ? '...' : '');
+      const preview = this.importText.substring(0, 1500) + (this.importText.length > 1500 ? '...' : '');
       document.getElementById('import-text-preview').textContent = preview;
       document.getElementById('btn-ai-parse').style.display = this.getApiKey() ? 'inline-flex' : 'none';
     } catch (err) {
@@ -385,12 +385,10 @@ const App = {
   async showImportResults() {
     document.getElementById('import-step4').style.display = 'block';
     document.getElementById('import-card-count').textContent = '识别到 ' + this.importCards.length + ' 张卡片';
-    // Populate deck select
     const sel = document.getElementById('import-deck-select');
     const decks = await DB.getAllDecks();
     sel.innerHTML = decks.map(d => '<option value="' + d.id + '">' + d.icon + ' ' + this.esc(d.name) + '</option>').join('');
     if (decks.length === 0) sel.innerHTML = '<option value="">请先创建牌组</option>';
-    // Render card list
     const list = document.getElementById('import-card-list');
     list.innerHTML = '';
     this.importCards.forEach((c, i) => {
@@ -398,8 +396,8 @@ const App = {
       el.className = 'import-card-item';
       el.innerHTML = '<div class="import-card-check"><input type="checkbox" checked data-idx="' + i + '"></div>' +
         '<div class="import-card-body">' +
-        '<div class="import-card-front"><span class="import-card-type">' + this.esc(c.type || '卡片') + '</span>' + this.esc(c.front).substring(0, 120) + '</div>' +
-        '<div class="import-card-back">' + this.esc(c.back).substring(0, 150) + '</div></div>';
+        '<div class="import-card-front"><span class="import-card-type">' + this.esc(c.type || '卡片') + '</span>' + this.esc(c.front).substring(0, 300) + '</div>' +
+        '<div class="import-card-back">' + this.esc(c.back).substring(0, 500) + '</div></div>';
       list.appendChild(el);
     });
   },

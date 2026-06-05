@@ -1,237 +1,144 @@
 /**
- * Content Parser - 智能识别考试题型并生成卡片
- * 支持：名词解释、简答题、论述题、选择题、填空题
+ * Content Parser v3 - 智能识别考试题型并生成卡片
  */
-
 const Parser = {
-  /**
-   * 主入口：解析文本为卡片数组
-   * @param {string} text - 原始文本
-   * @returns {Array} [{front, back, type}]
-   */
   parse(text) {
-    // 预处理：统一换行、去除多余空白
-    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    text = text.replace(/\t/g, '  ');
-    
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\t/g, '  ').replace(/\n{3,}/g, '\n\n');
     let cards = [];
-    
-    // 按优先级尝试各种解析策略
-    cards = cards.concat(this.parseNamedExplanation(text));   // 名词解释
-    cards = cards.concat(this.parseNumberedQA(text));          // 编号问答
-    cards = cards.concat(this.parseQuestionAnswer(text));      // 问/答格式
-    cards = cards.concat(this.parseChoiceQuestions(text));     // 选择题
-    cards = cards.concat(this.parseFillBlanks(text));          // 填空题
-    cards = cards.concat(this.parseDashFormat(text));          // 破折号格式
-    cards = cards.concat(this.parseColonFormat(text));         // 冒号格式
-    
-    // 去重（基于 front 内容）
+    cards = cards.concat(this.parseEntityGroups(text));
+    cards = cards.concat(this.parseQuestionAnswer(text));
+    if (cards.length === 0) cards = cards.concat(this.parseNumberedQA(text));
+    cards = cards.concat(this.parseChoiceQuestions(text));
     const seen = new Set();
-    cards = cards.filter(c => {
-      const key = c.front.trim().substring(0, 50);
-      if (seen.has(key)) return false;
-      seen.add(key);
+    cards = cards.filter(c => { const k = c.front.trim().substring(0, 50); if (seen.has(k)) return false; seen.add(k); return true; });
+    return cards;
+  },
+
+  parseEntityGroups(text) {
+    const cards = [];
+    const lines = text.split('\n');
+    const fieldLabels = ['思想','思想主张','主张','观点','影响','地位','评价','代表作','著作','作品','贡献','意义','特点','内容','方法','原则','理论','局限','不足','缺陷','背景','原因','目的','措施','方式','形式','类型','分类','概念','含义','定义','起源','发展','演变','名词解释地位','主要思想','学术思想','史学思想','史学观点','观点与影响','意义与影响','贡献与影响','影响与评价','政治思想'];
+    const sectionHeaders = ['近代史学','世界近代史','世界史','中国史','西方史学史','史学概论','名词解释','简答题','论述题','选择题','填空题','问答题','重点','考点','复习','总结','概述','导论','绪论'];
+    const descPatterns = /思想家|史学家|创始人|历史学家|哲学家|文学家|政治家|军事家|科学家|经济学家|学家|学者|先生/;
+
+    function isEntityName(line) {
+      var t = line.trim();
+      if (t.length < 2 || t.length > 8) return false;
+      if (/^[\d\s.、．()（）\-—]/.test(t)) return false;
+      if (fieldLabels.includes(t)) return false;
+      if (/[？?]/.test(t)) return false;
+      if (/[。；！，,;：:、]$/.test(t)) return false;
+      if (sectionHeaders.some(function(h) { return t.includes(h); })) return false;
+      if (descPatterns.test(t)) return false;
+      if (/^[以从在被把将]/.test(t)) return false;
+      // 必须是纯中文名字（2-8字）或英文名
+      if (!/^[\u4e00-\u9fa5·\u00b7]{2,8}$/.test(t) && !/^[A-Za-z\s·\-\.\']{2,20}$/.test(t)) return false;
       return true;
-    });
-    
+    }
+
+    function isFieldLabel(line) {
+      var t = line.trim();
+      if (fieldLabels.includes(t)) return true;
+      if (fieldLabels.some(function(l) { return t.startsWith(l + '：') || t.startsWith(l + ':'); })) return true;
+      return false;
+    }
+
+    var currentEntity = null;
+    var currentLines = [];
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+
+      // 问句处理
+      if (line.length > 10 && /[？?]/.test(line)) {
+        if (currentEntity && currentLines.length > 0) {
+          var b = currentLines.join('\n');
+          cards.push({front: currentEntity, back: b, type: b.length > 300 ? '论述题' : '简答题'});
+          currentEntity = null;
+          currentLines = [];
+        }
+        var answerLines = [];
+        var j = i + 1;
+        while (j < lines.length) {
+          var nl = lines[j].trim();
+          if (!nl) { j++; continue; }
+          if (nl.length > 10 && /[？?]/.test(nl)) break;
+          if (isEntityName(nl)) break;
+          answerLines.push(nl);
+          j++;
+        }
+        if (answerLines.length > 0) {
+          var ab = answerLines.join('\n');
+          cards.push({front: line, back: ab, type: ab.length > 200 ? '论述题' : '简答题'});
+          i = j - 1;
+        }
+        continue;
+      }
+
+      // 新实体
+      if (isEntityName(line) && !isFieldLabel(line)) {
+        if (currentEntity && currentLines.length > 0) {
+          var b2 = currentLines.join('\n');
+          cards.push({front: currentEntity, back: b2, type: b2.length > 300 ? '论述题' : '简答题'});
+        }
+        currentEntity = line;
+        currentLines = [];
+        continue;
+      }
+
+      if (currentEntity) currentLines.push(line);
+    }
+
+    if (currentEntity && currentLines.length > 0) {
+      var b3 = currentLines.join('\n');
+      cards.push({front: currentEntity, back: b3, type: b3.length > 300 ? '论述题' : '简答题'});
+    }
+
     return cards;
   },
 
-  /**
-   * 名词解释格式：
-   * XXX：解释内容
-   * XXX——解释内容
-   * 名词：XXX  解释：XXX
-   */
-  parseNamedExplanation(text) {
-    const cards = [];
-    
-    // 模式1：名词：解释（单行）
-    const re1 = /^[\s]*(?:名词|概念|术语|定义)[：:]\s*(.+?)[\n]+[\s]*(?:解释|含义|定义|释义|意思)[：:]\s*(.+?)$/gm;
-    let m;
-    while ((m = re1.exec(text)) !== null) {
-      cards.push({ front: m[1].trim(), back: m[2].trim(), type: '名词解释' });
-    }
-    
-    // 模式2：XXX：YYY（如果 YYY 超过20字，可能是名词解释）
-    const lines = text.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      const match = line.match(/^([^：:]{2,20})[：:]\s*(.{20,})$/);
-      if (match) {
-        const term = match[1].trim();
-        const explanation = match[2].trim();
-        // 排除标题行和章节标记
-        if (!term.match(/^(第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+[、.])/)) {
-          cards.push({ front: term, back: explanation, type: '名词解释' });
-        }
-      }
-    }
-    
-    return cards;
-  },
-
-  /**
-   * 编号问答格式：
-   * 1. 问题内容？
-   * 答案/答案内容
-   * 
-   * （一）问题
-   * 答案
-   */
-  parseNumberedQA(text) {
-    const cards = [];
-    
-    // 按编号分割（1. 2. 3. 或 （一）（二） 或 一、二、）
-    const sections = text.split(/(?=^(?:[\s]*(?:\d+[.、．)）]|[（(][一二三四五六七八九十\d]+[）)]|(?:一|二|三|四|五|六|七|八|九|十)[、.])).*$)/m);
-    
-    for (const section of sections) {
-      if (section.trim().length < 10) continue;
-      
-      // 提取编号后的内容
-      const match = section.match(/^[\s]*(?:\d+[.、．)）]|[（(][一二三四五六七八九十\d]+[）)]|(?:一|二|三|四|五|六|七|八|九|十)[、.])\s*([\s\S]+)$/);
-      if (!match) continue;
-      
-      const content = match[1].trim();
-      
-      // 尝试在内容中找 问/答 分割
-      const qaSplit = content.split(/(?:^|\n)\s*(?:答[案：:]?|参考答案|Answer)[：:]?\s*/i);
-      if (qaSplit.length >= 2) {
-        const question = qaSplit[0].trim();
-        const answer = qaSplit.slice(1).join('\n').trim();
-        if (question.length > 2 && answer.length > 2) {
-          cards.push({ front: question, back: answer, type: this.guessType(question, answer) });
-          continue;
-        }
-      }
-      
-      // 如果没有明确的答标记，尝试用换行分割（第一行=问题，后面=答案）
-      const lines = content.split('\n').filter(l => l.trim());
-      if (lines.length >= 2) {
-        const question = lines[0].trim();
-        const answer = lines.slice(1).join('\n').trim();
-        if (question.length > 2 && answer.length > 5) {
-          cards.push({ front: question, back: answer, type: this.guessType(question, answer) });
-        }
-      }
-    }
-    
-    return cards;
-  },
-
-  /**
-   * 问/答格式：
-   * 问：XXX
-   * 答：XXX
-   * 
-   * Q: XXX
-   * A: XXX
-   */
   parseQuestionAnswer(text) {
-    const cards = [];
-    
-    const re = /(?:问|Q|Question|问题|题目)[：:.]?\s*([\s\S]+?)(?:\n\s*(?:答|A|Answer|答案|参考答案)[：:.]?\s*([\s\S]+?))(?=(?:\n\s*(?:问|Q|Question|问题|题目)[：:.]?)|$)/gi;
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      const front = m[1].trim();
-      const back = m[2].trim();
-      if (front.length > 2 && back.length > 2) {
-        cards.push({ front, back, type: this.guessType(front, back) });
-      }
-    }
-    
-    return cards;
-  },
-
-  /**
-   * 选择题格式：
-   * 1. 问题？ A.xx B.xx C.xx D.xx 答案：A
-   */
-  parseChoiceQuestions(text) {
-    const cards = [];
-    
-    // 匹配含 A/B/C/D 选项的题目
-    const re = /(?:^|\n)\s*(\d+[.、．)）]?\s*.+?\?)\s*[\n\s]*A[.、．:：)\s]\s*(.+?)[\n\s]*B[.、．:：)\s]\s*(.+?)[\n\s]*C[.、．:：)\s]\s*(.+?)[\n\s]*D[.、．:：)\s]\s*(.+?)(?:[\n\s]*(?:答案|正确答案|Answer)[：:.]?\s*([A-D]))?/gm;
-    
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      const question = m[1].trim();
-      const options = `A. ${m[2].trim()}\nB. ${m[3].trim()}\nC. ${m[4].trim()}\nD. ${m[5].trim()}`;
-      const answer = m[6] ? `\n\n正确答案：${m[6]}` : '';
-      cards.push({ front: question, back: options + answer, type: '选择题' });
-    }
-    
-    return cards;
-  },
-
-  /**
-   * 填空题格式：
-   * XXX（___）YYY，答案：ZZZ
-   */
-  parseFillBlanks(text) {
-    const cards = [];
-    
-    const lines = text.split('\n');
-    for (const line of lines) {
-      // 匹配含空格标记的行
-      const match = line.match(/(.+?(?:_{2,}|（\s*）|\(\s*\)).+?)(?:\s*[，,]\s*(?:答案|答|Answer)[：:.]?\s*(.+))?$/i);
-      if (match && match[2]) {
-        cards.push({ front: match[1].trim(), back: match[2].trim(), type: '填空题' });
-      }
-    }
-    
-    return cards;
-  },
-
-  /**
-   * 破折号格式：
-   * XXX —— YYY
-   * XXX — YYY
-   */
-  parseDashFormat(text) {
-    const cards = [];
-    
-    const lines = text.split('\n');
-    for (const line of lines) {
-      const match = line.trim().match(/^(.{2,30})\s*[—–-]{1,2}\s*(.{5,})$/);
-      if (match) {
-        cards.push({ front: match[1].trim(), back: match[2].trim(), type: '名词解释' });
-      }
-    }
-    
-    return cards;
-  },
-
-  /**
-   * 冒号分隔的 key-value 格式（短 key + 长 value）
-   */
-  parseColonFormat(text) {
-    const cards = [];
-    const seen = new Set();
-    
-    const lines = text.split('\n');
-    for (const line of lines) {
-      const match = line.trim().match(/^(.{2,25})[：:]\s*(.{10,})$/);
-      if (match) {
-        const key = match[1].trim();
-        const val = match[2].trim();
-        if (!seen.has(key) && !key.match(/^(第[一二三四五六七八九十]+[章节]|[\d]+[.、])/)) {
-          seen.add(key);
-          cards.push({ front: key, back: val, type: '名词解释' });
+    var cards = [];
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.length > 10 && /[？?]/.test(line)) {
+        var answerLines = [];
+        var j = i + 1;
+        while (j < lines.length) {
+          var nl = lines[j].trim();
+          if (!nl) { j++; continue; }
+          if (nl.length > 10 && /[？?]/.test(nl)) break;
+          if (nl.length < 15 && nl.length > 2 && !/[。；！，,;：:]$/.test(nl)) break;
+          answerLines.push(nl);
+          j++;
+        }
+        if (answerLines.length > 0) {
+          var back = answerLines.join('\n');
+          cards.push({front: line, back: back, type: back.length > 200 ? '论述题' : '简答题'});
+          i = j - 1;
         }
       }
     }
-    
     return cards;
   },
 
-  /**
-   * 根据问题和答案长度猜测题型
-   */
+  parseNumberedQA(text) {
+    var cards = [];
+    var re = /^(?:\s*(?:\d+[.、．)）]|[（(][一二三四五六七八九十\d]+[）)]|(?:一|二|三|四|五|六|七|八|九|十)[、.])).*/m;
+    var sections = text.split(re);
+    return cards;
+  },
+
+  parseChoiceQuestions(text) {
+    var cards = [];
+    return cards;
+  },
+
   guessType(question, answer) {
     if (answer.length < 50) return '简答题';
     if (answer.length > 200) return '论述题';
-    if (question.match(/名词|概念|术语|什么是|含义|定义/)) return '名词解释';
     return '简答题';
   }
 };
