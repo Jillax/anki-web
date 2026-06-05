@@ -247,11 +247,24 @@ const App = {
     document.getElementById('review-status').textContent = sMap[status];
     document.getElementById('review-status').className = 'review-status status-' + status;
     document.getElementById('review-progress-bar').style.width = (this.reviewIndex / this.reviewQueue.length * 100) + '%';
-    document.getElementById('review-front').textContent = card.front;
-    document.getElementById('review-back').textContent = card.back;
+    document.getElementById('review-front').innerHTML = '<div class="card-text">' + this.esc(card.front) + '</div>';
+    document.getElementById('review-back').innerHTML = '<div class="card-text">' + this.esc(card.back).replace(/\n/g, '<br>') + '</div>';
+    // Dynamic height: measure back content and set min-height
     this.isFlipped = false;
-    document.getElementById('review-card').classList.remove('flipped');
+    const reviewCard = document.getElementById('review-card');
+    reviewCard.classList.remove('flipped');
     document.getElementById('review-actions').classList.remove('visible');
+    // Temporarily show back to measure height
+    const backFace = document.getElementById('review-back');
+    const savedDisplay = backFace.style.display;
+    backFace.style.display = 'flex';
+    backFace.style.position = 'relative';
+    const backHeight = backFace.scrollHeight;
+    const frontHeight = document.getElementById('review-front').scrollHeight;
+    backFace.style.display = savedDisplay;
+    backFace.style.position = '';
+    const neededHeight = Math.max(400, Math.max(backHeight, frontHeight) + 64);
+    reviewCard.style.minHeight = neededHeight + 'px';
   },
 
   flipCard() {

@@ -139,18 +139,22 @@ nav { display: flex; gap: 4px; }
 /* Flashcard Flip */
 .flashcard-container { perspective: 1000px; margin: 20px 0; }
 .flashcard {
-  position: relative; width: 100%; min-height: 300px; cursor: pointer;
-  transition: transform 0.5s; transform-style: preserve-3d;
+  position: relative; width: 100%; min-height: 400px; cursor: pointer;
+  transition: transform 0.5s, min-height 0.3s; transform-style: preserve-3d;
 }
 .flashcard.flipped { transform: rotateY(180deg); }
 .flashcard-face {
   position: absolute; inset: 0; backface-visibility: hidden;
   background: var(--bg2); border: 2px solid var(--bg3); border-radius: var(--radius);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 32px; text-align: center; font-size: 1.2rem; line-height: 1.8;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
+  padding: 32px; text-align: left; font-size: 1.05rem; line-height: 1.8;
+  overflow-y: auto;
 }
+.flashcard-face .card-text { width: 100%; white-space: pre-wrap; word-break: break-word; }
+.flashcard-front { align-items: center; text-align: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
+.flashcard-front .card-text { white-space: normal; }
 .flashcard-back { transform: rotateY(180deg); border-color: var(--primary); }
-.flashcard-hint { position: absolute; bottom: 16px; font-size: 0.75rem; color: var(--text3); }
+.flashcard-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: var(--text3); }
 
 /* Review Actions */
 .review-actions {
