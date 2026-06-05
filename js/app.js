@@ -409,6 +409,19 @@ const App = {
     });
   },
 
+  async showCreateDeckFromImport() {
+    const name = prompt('请输入新牌组名称:');
+    if (!name || !name.trim()) return;
+    const icon = prompt('请输入牌组图标（如 📚）:', '📚');
+    const deck = await DB.addDeck({ name: name.trim(), description: '计划导入', icon: icon || '📚' });
+    this.showToast('牌组“' + name.trim() + '”已创建');
+    // Refresh the deck select
+    const sel = document.getElementById('import-deck-select');
+    const decks = await DB.getAllDecks();
+    sel.innerHTML = decks.map(d => '<option value="' + d.id + '">' + d.icon + ' ' + this.esc(d.name) + '</option>').join('');
+    sel.value = deck.id;
+  },
+
   async confirmImport() {
     const deckId = document.getElementById('import-deck-select').value;
     if (!deckId) { this.showToast('请选择目标牌组', 'warning'); return; }
