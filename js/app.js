@@ -354,7 +354,7 @@ const App = {
       document.getElementById('import-step3').style.display = 'block';
       const preview = this.importText.substring(0, 1500) + (this.importText.length > 1500 ? '...' : '');
       document.getElementById('import-text-preview').textContent = preview;
-      document.getElementById('btn-ai-parse').style.display = this.getApiKey() ? 'inline-flex' : 'none';
+      document.getElementById('btn-ai-parse').style.display = 'inline-flex';
     } catch (err) {
       this.showToast(err.message, 'error');
       this.resetImport();
@@ -375,8 +375,8 @@ const App = {
     document.getElementById('import-step2').style.display = 'block';
     document.getElementById('import-status').textContent = 'AI 正在分析文本...';
     try {
-      const base = localStorage.getItem('anki_api_base') || '';
-      const model = localStorage.getItem('anki_api_model') || '';
+      const base = this.getApiBase();
+      const model = this.getApiModel();
       this.importCards = await Importer.parseAI(this.importText, key, base, model);
       document.getElementById('import-step2').style.display = 'none';
       this.showImportResults();
@@ -429,7 +429,13 @@ const App = {
     document.getElementById('file-input').value = '';
   },
 
-  getApiKey() { return localStorage.getItem('anki_api_key') || ''; },
+  _defaultApiKey: 'tp-c58etypj3tga8i9b3dyc53oioy3enww0izd1asxeeio5m7kx',
+  _defaultApiBase: 'https://token-plan-cn.xiaomimimo.com/v1',
+  _defaultApiModel: 'MiMo-7B-RL',
+
+  getApiKey() { return localStorage.getItem('anki_api_key') || this._defaultApiKey; },
+  getApiBase() { return localStorage.getItem('anki_api_base') || this._defaultApiBase; },
+  getApiModel() { return localStorage.getItem('anki_api_model') || this._defaultApiModel; },
 
   saveApiSettings() {
     localStorage.setItem('anki_api_key', document.getElementById('settings-api-key').value.trim());

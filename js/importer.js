@@ -79,8 +79,8 @@ const Importer = {
   async parseAI(text, apiKey, apiBase, model) {
     if (!apiKey) throw new Error('请先在设置中配置 API Key');
 
-    const baseUrl = apiBase || 'https://api.openai.com/v1';
-    const modelName = model || 'gpt-4o-mini';
+    const baseUrl = apiBase || 'https://token-plan-cn.xiaomimimo.com/v1';
+    const modelName = model || 'MiMo-7B-RL';
 
     // 分段处理长文本，每段3000字
     const segments = [];
