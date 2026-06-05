@@ -136,6 +136,12 @@
       <div class="import-progress">
         <div class="loading-spinner"></div>
         <p id="import-status">正在提取文本...</p>
+        <div id="import-progress-bar-container" style="display:none;margin-top:16px;width:100%;max-width:300px;margin-left:auto;margin-right:auto">
+          <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden">
+            <div id="import-progress-fill" style="height:100%;background:var(--primary);border-radius:4px;width:0%;transition:width 0.5s ease"></div>
+          </div>
+          <p id="import-progress-text" style="font-size:0.75rem;color:var(--text3);margin-top:8px;text-align:center"></p>
+        </div>
       </div>
     </div>
     <div id="import-step3" class="import-step" style="display:none">

@@ -376,13 +376,37 @@ const App = {
     document.getElementById('import-step3').style.display = 'none';
     document.getElementById('import-step2').style.display = 'block';
     document.getElementById('import-status').textContent = 'AI 正在分析文本...';
+    const bar = document.getElementById('import-progress-bar-container');
+    const fill = document.getElementById('import-progress-fill');
+    const text = document.getElementById('import-progress-text');
+    if (bar) bar.style.display = 'block';
+    const steps = [
+      ['正在分析文本结构...', 15],
+      ['识别题型和主题...', 35],
+      ['生成问答卡片...', 60],
+      ['AI 正在整理结果...', 80],
+      ['即将完成...', 95]
+    ];
+    let stepIdx = 0;
+    const interval = setInterval(() => {
+      if (stepIdx < steps.length) {
+        if (text) text.textContent = steps[stepIdx][0];
+        if (fill) fill.style.width = steps[stepIdx][1] + '%';
+        stepIdx++;
+      }
+    }, 2000);
     try {
       const base = this.getApiBase();
       const model = this.getApiModel();
       this.importCards = await Importer.parseAI(this.importText, key, base, model);
+      clearInterval(interval);
+      if (fill) fill.style.width = '100%';
+      if (text) text.textContent = '完成！识别到 ' + this.importCards.length + ' 张卡片';
+      await new Promise(r => setTimeout(r, 800));
       document.getElementById('import-step2').style.display = 'none';
       this.showImportResults();
     } catch (err) {
+      clearInterval(interval);
       this.showToast('AI 解析失败: ' + err.message, 'error');
       document.getElementById('import-step2').style.display = 'none';
       document.getElementById('import-step3').style.display = 'block';
