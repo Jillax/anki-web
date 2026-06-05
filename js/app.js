@@ -39,6 +39,8 @@ const App = {
 
   // ========== HOME ==========
   async renderHome() {
+    this.showView('home');
+    try {
     const decks = await DB.getAllDecks();
     const allCards = await DB.getAllCards();
     const dueCards = SM2.getDueCards(allCards);
@@ -77,7 +79,7 @@ const App = {
         ' <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();App.showDeckMenu(\'' + deck.id + '\')" title="更多">⋯</button></div>';
       deckList.appendChild(el);
     }
-    this.showView('home');
+    } catch(e) { console.error('renderHome error:', e); }
   },
 
   // ========== DECK MANAGEMENT ==========
