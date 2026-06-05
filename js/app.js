@@ -29,6 +29,11 @@ const App = {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const vEl = document.getElementById('view-' + view);
     if (vEl) vEl.classList.add('active');
+    // Update nav button highlights
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const navMap = { home: 'nav-home', import: 'nav-import', stats: 'nav-stats', settings: 'nav-settings' };
+    const navBtn = document.getElementById(navMap[view]);
+    if (navBtn) navBtn.classList.add('active');
     this.currentView = view;
   },
 
