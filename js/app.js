@@ -124,10 +124,10 @@ const App = {
 
   showDeckMenu(deckId) {
     this.showActionSheet([
-      { label: '📝 编辑牌组', action: () => this.showEditDeck(deckId) },
-      { label: '➕ 添加卡片', action: () => this.showAddCard(deckId) },
-      { label: '📤 导出牌组', action: () => this.exportDeck(deckId) },
-      { label: '🗑️ 删除牌组', action: () => this.deleteDeck(deckId), danger: true }
+      { label: '📝 编辑牌组', fn: 'App.showEditDeck("' + deckId + '")' },
+      { label: '➕ 添加卡片', fn: 'App.showAddCard("' + deckId + '")' },
+      { label: '📤 导出牌组', fn: 'App.exportDeck("' + deckId + '")' },
+      { label: '🗑️ 删除牌组', fn: 'App.deleteDeck("' + deckId + '")', danger: true }
     ]);
   },
 
@@ -564,7 +564,7 @@ const App = {
 
   showActionSheet(actions) {
     const s = document.getElementById('action-sheet'), c = s.querySelector('.action-sheet-content');
-    c.innerHTML = actions.map(a => '<button class="action-sheet-item' + (a.danger ? ' danger' : '') + '" onclick="document.getElementById(\'action-sheet\').classList.remove(\'active\');(' + a.action.toString() + ')()">' + a.label + '</button>').join('') +
+    c.innerHTML = actions.map(a => '<button class="action-sheet-item' + (a.danger ? ' danger' : '') + '" onclick="document.getElementById(\'action-sheet\').classList.remove(\'active\');' + a.fn + '">' + a.label + '</button>').join('') +
       '<button class="action-sheet-item" onclick="this.closest(\'.action-sheet\').classList.remove(\'active\')">取消</button>';
     s.classList.add('active');
   },
