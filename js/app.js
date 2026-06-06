@@ -124,10 +124,10 @@ const App = {
 
   showDeckMenu(deckId) {
     this.showActionSheet([
-      { label: '📝 编辑牌组', fn: 'App.showEditDeck("' + deckId + '")' },
-      { label: '➕ 添加卡片', fn: 'App.showAddCard("' + deckId + '")' },
-      { label: '📤 导出牌组', fn: 'App.exportDeck("' + deckId + '")' },
-      { label: '🗑️ 删除牌组', fn: 'App.deleteDeck("' + deckId + '")', danger: true }
+      { label: '📝 编辑牌组', fn: "App.showEditDeck('" + deckId + "')" },
+      { label: '➕ 添加卡片', fn: "App.showAddCard('" + deckId + "')" },
+      { label: '📤 导出牌组', fn: "App.exportDeck('" + deckId + "')" },
+      { label: '🗑️ 删除牌组', fn: "App.deleteDeck('" + deckId + "')", danger: true }
     ]);
   },
 
