@@ -348,7 +348,7 @@ const App = {
     const zone = document.getElementById('upload-zone');
     const input = document.getElementById('file-input');
     if (!zone || !input) return;
-    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('click', (e) => { if (e.target === zone || e.target.closest('.upload-icon') || e.target.closest('h3') || e.target.closest('p')) input.click(); });
     zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
     zone.addEventListener('drop', (e) => {
