@@ -166,7 +166,36 @@ const App = {
         cardList.appendChild(el);
       });
     }
+    this._currentDeckCards = cards;
+    document.getElementById('btn-show-all').style.display = cards.length > 0 ? 'inline-flex' : 'none';
     this.showView('deck-detail');
+  },
+
+  showAllCards() {
+    const cards = this._currentDeckCards || [];
+    const list = document.getElementById('card-list');
+    if (cards.length === 0) return;
+    // Toggle between truncated and full view
+    const isFull = list.classList.toggle('full-view');
+    list.innerHTML = '';
+    cards.sort((a, b) => new Date(b.created) - new Date(a.created)).forEach(card => {
+      const status = SM2.getStatus(card);
+      const sMap = { new: '新', learning: '学习中', review: '复习', relearning: '重学' };
+      const el = document.createElement('div');
+      el.className = 'card-item' + (card.starred ? ' starred' : '') + (isFull ? ' expanded' : '');
+      const maxLen = isFull ? 2000 : 100;
+      el.innerHTML = '<div class="card-content" onclick="App.showEditCard('' + card.id + '')">' +
+        '<div class="card-front">' + this.esc(card.front).substring(0, maxLen) + '</div>' +
+        '<div class="card-back">' + this.esc(card.back).substring(0, maxLen).replace(/
+/g, '<br>') + '</div></div>' +
+        '<div class="card-meta"><span class="card-status status-' + status + '">' + sMap[status] + '</span>' +
+        (card.interval ? '<span class="card-interval">' + SM2.formatInterval(card.interval) + '</span>' : '') + '</div>' +
+        '<div class="card-actions">' +
+        '<button class="btn-icon" onclick="event.stopPropagation();App.toggleStar('' + card.id + '')" title="标星">' + (card.starred ? '⭐' : '☆') + '</button>' +
+        '<button class="btn-icon" onclick="event.stopPropagation();App.deleteCardConfirm('' + card.id + '')" title="删除">🗑️</button></div>';
+      list.appendChild(el);
+    });
+    document.getElementById('btn-show-all').textContent = isFull ? '▶ 收起' : '▶ 查看全部';
   },
 
   // ========== CARD MANAGEMENT ==========
@@ -355,7 +384,30 @@ const App = {
       e.preventDefault(); zone.classList.remove('dragover');
       if (e.dataTransfer.files.length) this.handleFileUpload(e.dataTransfer.files[0]);
     });
-    input.addEventListener('change', (e) => { if (e.target.files.length) this.handleFileUpload(e.target.files[0]); });
+    input.addEventListener('change', (e) => { if (e.target.files.length) this.handleMultipleFiles(e.target.files); });
+  },
+
+  async handleMultipleFiles(files) {
+    let allText = '';
+    for (let i = 0; i < files.length; i++) {
+      document.getElementById('import-step1').style.display = 'none';
+      document.getElementById('import-step2').style.display = 'block';
+      document.getElementById('import-status').textContent = '正在处理 ' + files[i].name + ' (' + (i+1) + '/' + files.length + ')...';
+      try {
+        const text = await Importer.extractText(files[i]);
+        allText += '
+
+=== ' + files[i].name + ' ===
+' + text;
+      } catch(err) { console.error('Failed to extract:', files[i].name, err); }
+    }
+    if (!allText.trim()) { this.showToast('未能从文件中提取文本', 'error'); this.resetImport(); return; }
+    this.importText = allText;
+    document.getElementById('import-step2').style.display = 'none';
+    document.getElementById('import-step3').style.display = 'block';
+    const preview = this.importText.substring(0, 1500) + (this.importText.length > 1500 ? '...' : '');
+    document.getElementById('import-text-preview').textContent = preview;
+    document.getElementById('btn-ai-parse').style.display = 'inline-flex';
   },
 
   async handleFileUpload(file) {

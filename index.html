@@ -64,6 +64,7 @@
       <div>
         <h2 id="deck-detail-title">牌组</h2>
         <p style="font-size:0.85rem;color:var(--text2);margin-top:4px" id="deck-detail-count"></p>
+        <button class="btn btn-ghost btn-sm" onclick="App.showAllCards()" id="btn-show-all" style="display:none">▶ 查看全部</button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="App.showAddCard()">➕ 添加卡片</button>
@@ -128,7 +129,7 @@
         <div class="upload-icon">📄</div>
         <h3>拖拽文件到此处，或点击选择</h3>
         <p>支持 PDF、DOCX、TXT 格式</p>
-        <input type="file" id="file-input" accept=".pdf,.docx,.txt,.md" style="display:none">
+        <input type="file" id="file-input" accept=".pdf,.docx,.txt,.md" multiple style="display:none">
         <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">选择文件</button>
       </div>
     </div>
