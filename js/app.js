@@ -14,7 +14,7 @@ const App = {
   async init() {
     await DB.init();
     this.bindEvents();
-    this.bindKeyboard();
+    this.bindKeyboard(); this.bindSwipe();
     this.setupImport();
     await this.renderHome();
     this.hideLoading();
@@ -276,7 +276,7 @@ const App = {
     document.getElementById('review-status').textContent = sMap[status];
     document.getElementById('review-status').className = 'review-status status-' + status;
     document.getElementById('review-progress-bar').style.width = (this.reviewIndex / this.reviewQueue.length * 100) + '%';
-    document.getElementById('review-front').innerHTML = '<div class="card-text">' + this.esc(card.front) + '</div>';
+    document.getElementById('review-front').innerHTML = '<div class="card-text">' + this.esc(card.front) + '</div><div class="swipe-hint left">⬅ 忘了</div><div class="swipe-hint right">简单 ➡</div>';
     document.getElementById('review-back').innerHTML = '<div class="card-text">' + this.esc(card.back).replace(/\n/g, '<br>') + '</div>';
     // Dynamic height: measure back content and set min-height
     this.isFlipped = false;
@@ -598,6 +598,36 @@ const App = {
       if (this.currentView !== 'review' || document.querySelector('.modal.active')) return;
       if (e.key === ' ') { e.preventDefault(); this.flipCard(); }
       if (this.isFlipped && e.key >= '1' && e.key <= '4') this.rateCard(parseInt(e.key));
+    });
+  },
+
+  bindSwipe() {
+    const card = document.getElementById('review-card');
+    if (!card) return;
+    let startX = 0, startY = 0, isDragging = false;
+    card.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isDragging = true;
+    }, { passive: true });
+    card.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      const dx = e.touches[0].clientX - startX;
+      if (Math.abs(dx) > 30) {
+        const rot = this.isFlipped ? 'rotateY(180deg) ' : '';
+        card.style.transform = rot + 'translateX(' + dx + 'px) rotate(' + (dx * 0.05) + 'deg)';
+        card.classList.toggle('swiping-left', dx < -50);
+        card.classList.toggle('swiping-right', dx > 50);
+      }
+    }, { passive: true });
+    card.addEventListener('touchend', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      card.style.transform = '';
+      card.classList.remove('swiping-left', 'swiping-right');
+      if (dx > 100 && this.isFlipped) this.rateCard(4);
+      else if (dx < -100 && this.isFlipped) this.rateCard(1);
     });
   },
 
